@@ -1,0 +1,44 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+
+exporters:
+  debug:
+    verbosity: detailed
+  otlphttp:
+    # "loki" resolves to the Loki container in Docker Compose.
+    # Change back to localhost:3100 when running outside Docker.
+    endpoint: http://loki:3100/otlp
+
+  ## Send metrics to a locally running Prometheus instance (Docker Compose / local dev).
+  ## For Kubernetes, the otlphttp/prometheus exporter in helm-values.yaml is used instead.
+  ## Requires Prometheus to be started with --web.enable-remote-write-receiver.
+  prometheusremotewrite:
+    # "prometheus" resolves to the Prometheus container in Docker Compose.
+    # Change back to localhost:9090 when running outside Docker.
+    endpoint: "http://prometheus:9090/api/v1/write"
+    tls:
+      insecure: true
+    # By default, OTel resource attributes (service.name, deployment.environment,
+    # etc.) are NOT added as Prometheus labels. This setting promotes them so they
+    # appear as labels like service_name="go-gin-api" in Grafana.
+    resource_to_telemetry_conversion:
+      enabled: true
+
+service:
+  pipelines:
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [debug, otlphttp]
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [debug, prometheusremotewrite]

@@ -1,0 +1,54 @@
+services:
+
+  # ── Prometheus ────────────────────────────────────────────────────────────────
+  # Scrapes metrics and accepts remote-write from the OTel Collector.
+  prometheus:
+    image: prom/prometheus:latest
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      # Required so the OTel Collector can push metrics via remote-write.
+      - --web.enable-remote-write-receiver
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"   # UI + API: http://localhost:9090
+
+  # ── Loki ──────────────────────────────────────────────────────────────────────
+  # Log aggregation backend. Receives logs from the OTel Collector over OTLP HTTP.
+  loki:
+    image: grafana/loki:latest
+    command: -config.file=/etc/loki/loki.yaml
+    volumes:
+      - ./loki/loki.yaml:/etc/loki/loki.yaml:ro
+    ports:
+      - "3100:3100"   # HTTP API + OTLP ingest
+
+  # ── OTel Collector ────────────────────────────────────────────────────────────
+  # Receives OTLP telemetry from instrumented apps and fans out to Loki/Prometheus.
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    command: ["--config=/etc/otel-collector/otel-collector-config.yaml"]
+    volumes:
+      - ./otel-collector/otel-collector-config.yaml:/etc/otel-collector/otel-collector-config.yaml:ro
+    ports:
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+    depends_on:
+      - prometheus
+      - loki
+
+  # ── Grafana ───────────────────────────────────────────────────────────────────
+  # Visualisation layer. Datasources (Prometheus + Loki) are provisioned
+  # automatically on startup from local-project/grafana/provisioning/.
+  grafana:
+    image: grafana/grafana:latest
+    volumes:
+      # Main server config (ports, auth, feature toggles, etc.)
+      - ./grafana/grafana.ini:/etc/grafana/grafana.ini:ro
+      # Provisioning directory — Grafana watches this for datasource definitions.
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "3000:3000"   # UI: http://localhost:3000  (admin / admin)
+    depends_on:
+      - prometheus
+      - loki

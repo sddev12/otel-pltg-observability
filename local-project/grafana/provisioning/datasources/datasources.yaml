@@ -1,0 +1,45 @@
+# Grafana datasource provisioning — Docker Compose local stack
+#
+# Grafana loads this file on startup and creates the datasources automatically.
+# No manual UI configuration needed.
+# See: https://grafana.com/docs/grafana/latest/administration/provisioning/#data-sources
+
+apiVersion: 1
+
+datasources:
+
+  # ── Prometheus ──────────────────────────────────────────────────────────────
+  # Receives metrics from the OTel Collector via remote-write, and also scrapes
+  # its own /metrics endpoint.
+  - name: Prometheus
+    type: prometheus
+    uid: prometheus
+    access: proxy           # Grafana backend queries Prometheus (recommended)
+    url: http://prometheus:9090
+    isDefault: true         # Used as the default datasource for new panels
+    editable: false         # Prevent accidental UI edits overwriting this config
+    jsonData:
+      # Match the scrape interval set in prometheus.yml so graphs align correctly.
+      timeInterval: "15s"
+      # Enable the Prometheus Exemplar feature — allows jumping from a metric
+      # data point directly to the trace that caused it (requires Tempo too).
+      exemplarTraceIdDestinations:
+        - name: traceID
+          datasourceUid: tempo
+
+  # ── Loki ────────────────────────────────────────────────────────────────────
+  # Receives structured logs from the OTel Collector over OTLP HTTP.
+  - name: Loki
+    type: loki
+    uid: loki
+    access: proxy
+    url: http://loki:3100
+    editable: false
+    jsonData:
+      # Link log lines containing a traceID field to Tempo traces.
+      # When you see a log line in Explore, a "Tempo" button will appear.
+      derivedFields:
+        - name: traceID
+          matcherRegex: '"traceID":"(\w+)"'
+          url: "$${__value.raw}"
+          datasourceUid: tempo

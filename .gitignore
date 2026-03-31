@@ -1,0 +1,79 @@
+# -------------------------
+# Go
+# -------------------------
+# Compiled binaries
+bin/
+*.exe
+*.out
+
+# Go workspace local files
+go.work.sum
+
+# Test cache and coverage
+*.test
+*.coverprofile
+coverage.out
+
+
+# -------------------------
+# Environment / Secrets
+# -------------------------
+.env
+.env.*
+!.env.example
+
+# Local TLS certs (generated, not for committing — except example certs in certs/)
+*.pem
+*.key
+*.crt
+*.p12
+# Re-include the example whoami certs that are intentionally in the repo
+!example-apps/traefik-whoami/certs/
+
+
+# -------------------------
+# Kubernetes / Helm
+# -------------------------
+# Helm chart dependencies downloaded locally
+charts/
+*.tgz
+
+# Rendered Helm templates (generated output, not source)
+rendered/
+
+# Local kubeconfig overrides
+kubeconfig
+kubeconfig.yaml
+
+
+# -------------------------
+# Docker
+# -------------------------
+# Docker build context artifacts
+.dockerignore
+
+
+# -------------------------
+# Editors and IDEs
+# -------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+
+# -------------------------
+# OS
+# -------------------------
+.DS_Store
+Thumbs.db
+
+
+# -------------------------
+# Misc
+# -------------------------
+# Local scratch/notes not meant for the repo
+scratch/
+notes/
+TODO.local.md
